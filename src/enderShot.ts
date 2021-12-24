@@ -80,7 +80,7 @@ export class EnderShot {
         this.interceptCalcs = interceptCalcs ?? new InterceptFunctions(bot);
     }
 
-    public calcToBlock(target: Block | Vec3, blockChecking: boolean = true, log = false): BasicShotInfo {
+    public calcToBlock(target: Block | Vec3, blockChecking: boolean = false): BasicShotInfo {
         const targetPos = target instanceof Vec3 ? target : target.position;
         const targetAABB = getBlockPosAABB(targetPos)
         let currentVelocity = this.initialVel.clone();

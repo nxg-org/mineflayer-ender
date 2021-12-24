@@ -35,11 +35,13 @@ export class EnderShotPlanner {
         if (shotInfo.shotInfo) shotInfo = shotInfo.shotInfo as BasicShotInfo;
         if (!shotInfo) return false;
         if (shotInfo.block && pitch > PIOver3) {
+
+            //shotInfo.landingDistance <= 1 && shotInfo.block.position.y === target.y
             // console.log("final check", pitch, shotInfo.landingDistance, target, shotInfo.block.position, (!face || face === shotInfo.blockFace));
-            return shotInfo.landingDistance <= 1 && shotInfo.block.position.y === target.y && (!face || face === shotInfo.blockFace);
+            return  shotInfo.landingDistance === 0  && (!face || face === shotInfo.blockFace);
         } else if (shotInfo.block) {
             // console.log("final check", pitch, shotInfo.landingDistance === 0, (!face || face === shotInfo.blockFace));
-            return shotInfo.landingDistance <= 1 && shotInfo.block.position.y === target.y && (!face || face === shotInfo.blockFace);
+            return shotInfo.landingDistance === 0  && (!face || face === shotInfo.blockFace);
         } else {
             return false
         }
@@ -109,7 +111,7 @@ export class EnderShotPlanner {
                 { position: this.bot.entity.position, yaw, pitch, velocity: this.originVel,  },
                 this.bot, this.intercepter
             );
-            const shot = initShot.calcToBlock(target, true, true);
+            const shot = initShot.calcToBlock(target, true);
             if (this.isShotValid(shot, target, pitch))
                 return { hit: true, yaw, pitch, ticks, shotInfo: shot };
         }

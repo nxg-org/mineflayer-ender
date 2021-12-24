@@ -41,12 +41,10 @@ bot.on("chat", async (username, message) => {
             await bot.equip(item, "hand")
             await bot.look(test.yaw, test.pitch)
             await bot.waitForTicks(1)
-            console.log(test.yaw, test.pitch, test.shotInfo?.landingDistance)
+            console.log(test.yaw, test.pitch, test.shotInfo?.landingDistance, test.shotInfo?.closestPoint) //TODO: fix intersection here.
             bot.swingArm(undefined);
             bot.activateItem();
             bot.deactivateItem();
             break;
-        default:
-            console.log("hi")
     }
 });
