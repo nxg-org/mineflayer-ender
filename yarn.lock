@@ -19,10 +19,10 @@
     jsonwebtoken "^8.5.1"
     uuid "^8.3.0"
 
-"@nxg-org/mineflayer-trajectories@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@nxg-org/mineflayer-trajectories/-/mineflayer-trajectories-1.0.3.tgz#eaea385de272fff500f55846ae4b817531c7d0b8"
-  integrity sha512-3rw9Fpa8rOSVZyJIQ8nvyjPcylyEwnqdaCroklBYFxglxiDwdo6/wnzyLNfoHPVZxt2g4M3iwisu48V+qi2puQ==
+"@nxg-org/mineflayer-trajectories@^1.0.4":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@nxg-org/mineflayer-trajectories/-/mineflayer-trajectories-1.0.4.tgz#fa1845f736529baf2faea411ca069de7e71de93c"
+  integrity sha512-DKlBtRG/R+jaTY5JwtuYU/TdauJmcXaD5kjJxVIUC5baiKjGoFlKzt46g6t4NBeD3Zd5SmFDXF5DZsBgwq1r2w==
   dependencies:
     "@nxg-org/mineflayer-util-plugin" "^1.3.6"
     minecraft-data "^2.97.0"
@@ -45,10 +45,10 @@
     prismarine-item "^1.11.1"
     vec3 "^0.1.7"
 
-"@types/node@^16.11.11":
-  version "16.11.15"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.15.tgz#724da13bc1ba99fe8190d0f5cd35cb53c67db942"
-  integrity sha512-LMGR7iUjwZRxoYnfc9+YELxwqkaLmkJlo4/HUvOMyGvw9DaHO0gtAbH2FUdoFE6PXBTYZIT7x610r7kdo8o1fQ==
+"@types/node@^17.0.4":
+  version "17.0.4"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.4.tgz#fec0ce0526abb6062fd206d72a642811b887a111"
+  integrity sha512-6xwbrW4JJiJLgF+zNypN5wr2ykM9/jHcL7rQ8fZe2vuftggjzZeRSM4OwRc6Xk8qWjwJ99qVHo/JgOGmomWRog==
 
 "@xboxreplay/errors@^0.1.0":
   version "0.1.0"
