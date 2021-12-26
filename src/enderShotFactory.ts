@@ -2,7 +2,7 @@ import { InterceptFunctions } from "@nxg-org/mineflayer-util-plugin";
 import { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import { trajectoryInfo } from "./calc/constants";
-import { yawPitchAndSpeedToDir } from "./calc/mathUtilts";
+import { vectorMagnitude, yawPitchAndSpeedToDir } from "./calc/mathUtilts";
 import { EnderShot } from "./enderShot";
 import { ProjectileInfo, ProjectileMotion, ShotEntity } from "./types";
 
@@ -20,9 +20,7 @@ export class EnderShotFactory {
         );
     }
 
-    static fromEntity({ position, velocity, name }: ProjectileInfo, bot: Bot, interceptCalcs?: InterceptFunctions) {
-        const info = trajectoryInfo[name!];
-        if (!!info) return new EnderShot(velocity, { position, velocity, gravity: info.g }, bot, interceptCalcs);
-        else throw `Invalid projectile type: ${name}`;
+    static fromEntity({ position, velocity }: ProjectileInfo, bot: Bot, interceptCalcs?: InterceptFunctions) {
+        return new EnderShot(velocity, { position, velocity, gravity: shotInfo.g }, bot, interceptCalcs);
     }
 }

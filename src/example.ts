@@ -39,5 +39,14 @@ bot.on("chat", async (username, message) => {
                 return
             }
             bot.ender.pearl(targetBlock, 1)
+        case "come":
+            target = bot.nearestEntity((e) => (e.username ?? e.name) === split[1]);
+            if (!target) {
+                console.log("no entity")
+                return
+            }
+            bot.util.move.followEntityWithRespectRange(target, 3)
+        case "stop":
+            bot.util.move.stop()
     }
 });
