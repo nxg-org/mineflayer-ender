@@ -3,6 +3,11 @@ import enderPearling from "./index";
 import { Vec3 } from "vec3";
 import type { Entity } from "prismarine-entity";
 import type { Block } from "prismarine-block";
+import { promisify } from "util";
+
+
+
+const sleep = promisify(setTimeout)
 
 let target: Entity | null = null;
 let targetBlock: Block | null = null;
@@ -33,18 +38,6 @@ bot.on("chat", async (username, message) => {
                 console.log("no block under entity")
                 return
             }
-            const test = bot.ender.shotToBlock(targetBlock, 1)
-            // console.log("fuck", test)
-            if (!test || !test?.hit) return console.log("shit")
-            const item = bot.inventory.items().find(i => i.name === "ender_pearl")
-            if (!item) return console.log("no ender pearl.")
-            await bot.equip(item, "hand")
-            await bot.look(test.yaw, test.pitch)
-            await bot.waitForTicks(1)
-            console.log(test.yaw, test.pitch, test.shotInfo?.landingDistance, test.shotInfo?.closestPoint) //TODO: fix intersection here.
-            bot.swingArm(undefined);
-            bot.activateItem();
-            bot.deactivateItem();
-            break;
+            bot.ender.pearl(targetBlock, 1)
     }
 });

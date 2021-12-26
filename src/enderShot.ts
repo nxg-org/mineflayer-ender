@@ -71,7 +71,7 @@ export class EnderShot {
         const { yaw, pitch } = dirToYawAndPitch(pVel);
         this.initialPos = pPos.clone();
         this.initialVel = pVel.clone().add(originVel);
-        this.gravity = gravity;
+        this.gravity = Math.fround(gravity);
         this.initialYaw = yaw;
         this.initialPitch = pitch;
         this.points = [];
@@ -81,22 +81,23 @@ export class EnderShot {
     }
 
     public calcToBlock(target: Block | Vec3, blockChecking: boolean = false): BasicShotInfo {
-        const targetPos = target instanceof Vec3 ? target : target.position;
+        let targetPos = target instanceof Vec3 ? target : target.position;
+        targetPos.floor();
         const targetAABB = getBlockPosAABB(targetPos)
+
         let currentVelocity = this.initialVel.clone();
-        // if (log) console.log(currentVelocity)
         let currentPosition = this.initialPos.clone();
         let nextPosition = currentPosition.clone().add(currentVelocity);
         let nearestDistance = targetAABB.distanceTo(this.initialPos); // initial distance.
-        let currentDistance = nearestDistance;
-        let landingDistance: number = 100000; //todo, make cleaner.
+        let XZLandingDistance: number = 100000; //todo, make cleaner.
+        let YLandingDistance: number = 100000;
+        let closestPoint: Vec3 = currentPosition.clone();
         let blockInfo: BlockAndIterations;
-        let closestPoint: Vec3 | null = null;
         let blockHit: Block | null = null;
         let blockHitFace: BlockFace | undefined;
 
         let totalTicks = 0;
-        const gravity: number = this.gravity //this.gravity * airResistance.y;
+        const gravity: number = this.gravity - this.gravity * airResistance.y;
         let offsetX: number;
         let offsetY: number;
         let offsetZ: number;
@@ -115,10 +116,12 @@ export class EnderShot {
 
             if (blockChecking) {
                 blockInfo = this.interceptCalcs.check(currentPosition, nextPosition);
-                if (blockInfo.block) {
+                if (blockInfo.block && blockInfo.block.name !== "air") {
                     blockHit = blockInfo.block;
                     blockHitFace = blockInfo.iterations[0].face; //todo, make cleaner.
-                    landingDistance = targetPos.distanceTo(blockInfo.block.position) //todo: get block interception point.
+                    XZLandingDistance = targetPos.xzDistanceTo(blockInfo.block.position) //todo: get block interception point.
+                    YLandingDistance = Math.abs(targetPos.y - blockInfo.block.position.y)
+                    if (closestPoint.distanceTo(targetPos) > blockInfo.block.position.distanceTo(targetPos)) closestPoint = blockInfo.block.position.clone()
                     break;
                 }
             }
@@ -126,9 +129,11 @@ export class EnderShot {
             const intersection = targetAABB.intersectsSegment(currentPosition, nextPosition);
             if (intersection) {
                 blockHit = this.bot.blockAt(intersection);
+               
                 closestPoint = intersection.clone()
                 nearestDistance = 0;
-                landingDistance = 0;
+                XZLandingDistance = 0;
+                YLandingDistance = 0;
                 break;
             }
 
@@ -139,8 +144,10 @@ export class EnderShot {
             currentVelocity.translate(offsetX, offsetY, offsetZ);
             nextPosition.add(currentVelocity);
         }
+
         return {
-            landingDistance,
+            XZLandingDistance,
+            YLandingDistance,
             block: blockHit,
             blockFace: blockHitFace,
             closestPoint,

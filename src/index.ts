@@ -3,11 +3,11 @@ import { EnderShotFactory } from "./enderShotFactory";
 import utilPlugin from "@nxg-org/mineflayer-util-plugin";
 import { Bot } from "mineflayer";
 import { Entity } from "prismarine-entity";
-import { EnderShotPlanner } from "./enderPlanner";
+import { Enderman } from "./enderman";
 
 declare module "mineflayer" {
     interface Bot {
-        ender: EnderShotPlanner;
+        ender: Enderman;
     }
     interface BotEvents {
         attackedTarget: (target: Entity) => void;
@@ -19,8 +19,8 @@ declare module "mineflayer" {
 
 export default function plugin(bot: Bot) {
     if (!bot.util) bot.loadPlugin(utilPlugin);
-    bot.ender = new EnderShotPlanner(bot);
+    bot.ender = new Enderman(bot);
 }
 
 export { EnderShotFactory };
-export { EnderShotPlanner };
+export { Enderman };

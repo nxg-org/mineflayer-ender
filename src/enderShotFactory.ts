@@ -3,31 +3,26 @@ import { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import { trajectoryInfo } from "./calc/constants";
 import { yawPitchAndSpeedToDir } from "./calc/mathUtilts";
-import { EnderShot } from "./enderShot"
-import { ProjectileMotion, ShotEntity } from "./types";
+import { EnderShot } from "./enderShot";
+import { ProjectileInfo, ProjectileMotion, ShotEntity } from "./types";
 
 const emptyVec = new Vec3(0, 0, 0);
-
+const shotInfo = trajectoryInfo["ender_pearl"];
 
 export class EnderShotFactory {
-
-
-    static fromPlayer(
-        { position, yaw, pitch, velocity, heldItem }: ShotEntity,
-        bot: Bot, interceptCalcs?: InterceptFunctions
-    ): EnderShot {
-        const info = trajectoryInfo["ender_pearl"];
-        const projVel = yawPitchAndSpeedToDir(yaw!, pitch!, info.v0);
-        return new EnderShot(velocity, { position: position.offset(0, 1.62, 0), velocity: projVel, gravity: info.g }, bot, interceptCalcs);
-
-    }
-    
-    static withoutGravity({ position, velocity }: ProjectileMotion, bot: Bot, interceptCalcs?: InterceptFunctions): EnderShot {
-        return new EnderShot(emptyVec, { position, velocity, gravity: 0.00 }, bot, interceptCalcs);
+    static fromPlayer({ position, yaw, pitch, velocity }: ShotEntity, bot: Bot, interceptCalcs?: InterceptFunctions): EnderShot {
+        const projVel = yawPitchAndSpeedToDir(yaw!, pitch!, shotInfo.v0);
+        return new EnderShot(
+            velocity,
+            { position: position.offset(0, shotInfo.ph, 0), velocity: projVel, gravity: shotInfo.g },
+            bot,
+            interceptCalcs
+        );
     }
 
-    static customGravity({ position, velocity }: ProjectileMotion, gravity: number, bot: Bot, interceptCalcs?: InterceptFunctions,): EnderShot {
-        return new EnderShot(emptyVec, { position, velocity, gravity }, bot, interceptCalcs);
+    static fromEntity({ position, velocity, name }: ProjectileInfo, bot: Bot, interceptCalcs?: InterceptFunctions) {
+        const info = trajectoryInfo[name!];
+        if (!!info) return new EnderShot(velocity, { position, velocity, gravity: info.g }, bot, interceptCalcs);
+        else throw `Invalid projectile type: ${name}`;
     }
-
 }
