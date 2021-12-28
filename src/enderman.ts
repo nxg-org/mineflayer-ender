@@ -9,6 +9,7 @@ import { EnderShotPlanner } from "./enderPlanner";
 import { Vec3 } from "vec3";
 import { BlockFace, CheckedShot } from "./types";
 import { Block } from "prismarine-block";
+import { EnderShotFactory } from "./enderShotFactory";
 const sleep = promisify(setTimeout);
 const emptyVec = new Vec3(0, 0, 0);
 
@@ -56,28 +57,51 @@ export class Enderman {
         this.bot.deactivateItem();
     }
 
-    public async pearl(block: Block, face?: number): Promise<void> {
-        if (this.pearling) return;
+    public async pearl(block: Block, face?: number): Promise<boolean> {
+        if (this.pearling) return false;
         this.pearling = true;
         const shotInfo = this.shotToBlock(block, face);
         const equipped = await this.equipPearls();
         if (!equipped) {
             this.pearling = false;
-            return console.log("No pearls.");
+            console.log("No pearls.");
+            return false;
         }
-        if (!shotInfo || !shotInfo.hit) {
-            this.pearling = false;
-            return console.log("Invalid shot info.")
-        };
 
-        const task = this.bot.look(shotInfo.yaw, shotInfo.pitch);
+        if (!shotInfo) {
+            this.pearling = false;
+            return false;
+        }
+        const initShot = EnderShotFactory.fromPlayer(
+            { position: this.bot.entity.position, yaw: shotInfo.yaw, pitch: shotInfo.pitch, velocity: emptyVec },
+            this.bot
+        );
+        initShot.calcToBlock(block, true);
+
+        if (!shotInfo.hit) {
+            this.pearling = false;
+            console.log("Invalid shot info.");
+            return false;
+        }
+
+
+        await this.bot.util.move.forceLook(shotInfo.yaw, shotInfo.pitch, true);
         while (!this.pearlReady) await sleep(0);
-        await task;
-        // console.log(shotInfo.yaw, shotInfo.pitch, shotInfo.shotInfo?.XZLandingDistance, shotInfo.shotInfo?.closestPoint); //TODO: fix intersection here.
+        //will update plugin in a sec
+
         this.bot.swingArm(undefined);
         this.bot.activateItem();
         this.bot.deactivateItem();
         this.lastPearl = performance.now();
         this.pearling = false;
+        for (let i = 0; i < 3; i++) {
+            for (const pos of initShot.points) {
+                const { x, y, z } = pos;
+                this.bot.chat(`/particle flame ${x} ${y} ${z} 0 0 0 0 1 force`);
+            }
+            await sleep(1000);
+        }
+
+        return true;
     }
 }

@@ -54,9 +54,9 @@ export class EnderShot {
     readonly initialYaw: number;
     readonly initialPitch: number;
     readonly gravity: number;
-    private points: Vec3[];
-    private pointVelocities: Vec3[];
-    private blockHit = false;
+    public points: Vec3[];
+    public pointVelocities: Vec3[];
+    public blockHit = false;
     private bot: Bot;
     public interceptCalcs: InterceptFunctions;
     public blockCheck: boolean = false;
@@ -71,7 +71,7 @@ export class EnderShot {
         const { yaw, pitch } = dirToYawAndPitch(pVel);
         this.initialPos = pPos.clone();
         this.initialVel = pVel.clone().add(originVel);
-        this.gravity = Math.fround(gravity);
+        this.gravity = gravity;
         this.initialYaw = yaw;
         this.initialPitch = pitch;
         this.points = [];
@@ -97,7 +97,7 @@ export class EnderShot {
         let blockHitFace: BlockFace | undefined;
 
         let totalTicks = 0;
-        const gravity: number = this.gravity - this.gravity * airResistance.y;
+        const gravity: number = this.gravity //+ this.gravity * airResistance.y;
         let offsetX: number;
         let offsetY: number;
         let offsetZ: number;
@@ -105,7 +105,7 @@ export class EnderShot {
         while (totalTicks < 300) {
             totalTicks++;
             offsetX = -currentVelocity.x * airResistance.h;
-            offsetY = -currentVelocity.y * airResistance.y - gravity;
+            offsetY = -currentVelocity.y * airResistance.y + gravity;
             offsetZ = -currentVelocity.z * airResistance.h;
 
             const posDistance = targetPos.distanceTo(currentPosition);
@@ -138,9 +138,10 @@ export class EnderShot {
             }
 
             // console.log(currentPosition, nextPosition, totalTicks)
-
- 
+            this.points.push(currentPosition.clone())
+            this.pointVelocities.push(currentVelocity.clone())
             currentPosition.add(currentVelocity);
+            // currentVelocity.scale(Math.fround(1 - airResistance.y)).translate(0, this.gravity, 0)
             currentVelocity.translate(offsetX, offsetY, offsetZ);
             nextPosition.add(currentVelocity);
         }
