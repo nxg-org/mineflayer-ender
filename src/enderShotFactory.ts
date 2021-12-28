@@ -1,4 +1,4 @@
-import { InterceptFunctions } from "@nxg-org/mineflayer-util-plugin";
+import { InterceptFunctions } from "@nxg-org/mineflayer-util-plugin/lib";
 import { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import { trajectoryInfo } from "./calc/constants";
