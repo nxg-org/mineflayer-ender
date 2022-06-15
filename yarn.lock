@@ -58,10 +58,10 @@
     prismarine-item "^1.11.1"
     vec3 "^0.1.7"
 
-"@types/node@^16.11.11":
-  version "16.11.17"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.17.tgz#ae146499772e33fc6382e1880bc567e41a528586"
-  integrity sha512-C1vTZME8cFo8uxY2ui41xcynEotVkczIVI5AjLmy5pkpBv/FtG+jhtOlfcPysI8VRVwoOMv6NJm44LGnoMSWkw==
+"@types/node@^17.0.44":
+  version "17.0.44"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.44.tgz#16dd0bb5338f016d8ca10631789f0d0612fe5d5b"
+  integrity sha512-gWYiOlu6Y4oyLYBvsJAPlwHbC8H4tX+tLsHy6Ee976wedwwZKrG2hFl3Y/HiH6bIyLTbDWQexQF/ohwKkOpUCg==
 
 "@xboxreplay/errors@^0.1.0":
   version "0.1.0"
