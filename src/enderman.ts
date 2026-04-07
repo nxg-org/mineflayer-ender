@@ -53,7 +53,7 @@ export class Enderman {
     public cancel() {
         // if (this.target) this.tracker.stopTrackingEntity(this.target);
         this.enabled = false;
-        if (this.shotCharging && this.shotInfo) this.bot.util.move.forceLook(this.shotInfo.yaw, this.shotInfo.pitch, true);
+        if (this.shotCharging && this.shotInfo) this.bot.look(this.shotInfo.yaw, this.shotInfo.pitch, true);
         this.bot.deactivateItem();
     }
 
@@ -85,7 +85,7 @@ export class Enderman {
         }
 
 
-        await this.bot.util.move.forceLook(shotInfo.yaw, shotInfo.pitch, true);
+        await this.bot.look(shotInfo.yaw, shotInfo.pitch, true);
         while (!this.pearlReady) await sleep(10);
         //will update plugin in a sec
 
