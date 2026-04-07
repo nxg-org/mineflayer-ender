@@ -3,7 +3,7 @@ import type { Bot } from "mineflayer";
 import { Block } from "prismarine-block";
 import type { Entity } from "prismarine-entity";
 import type { Item } from "prismarine-item";
-import { dirToYawAndPitch, getPremonition } from "./calc/mathUtilts";
+import { dirToYawAndPitch, getPremonition } from "./calc/mathUtils";
 import { trajectoryInfo, airResistance, BlockFace } from "./calc/constants";
 import { getBlockAABB, getBlockPosAABB, getEntityAABB } from "./calc/aabbUtil";
 import { promisify } from "util";
@@ -88,7 +88,7 @@ export class EnderShot {
         let currentVelocity = this.initialVel.clone();
         let currentPosition = this.initialPos.clone();
         let nextPosition = currentPosition.clone().add(currentVelocity);
-        let nearestDistance = targetAABB.distanceTo(this.initialPos); // initial distance.
+        let nearestDistance = targetAABB.distanceToVec(this.initialPos); // initial distance.
         let XZLandingDistance: number = 100000; //todo, make cleaner.
         let YLandingDistance: number = 100000;
         let closestPoint: Vec3 = currentPosition.clone();

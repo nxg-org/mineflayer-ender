@@ -1,7 +1,8 @@
 import { createBot } from "mineflayer";
-import enderPearling from "./index";
+import enderPearling from "../src/index";
 import { Vec3 } from "vec3";
 import utilPlugin from "@nxg-org/mineflayer-util-plugin"
+import {pathfinder, goals} from "mineflayer-pathfinder"
 import type { Entity } from "prismarine-entity";
 import type { Block } from "prismarine-block";
 import { promisify } from "util";
@@ -16,6 +17,7 @@ const bot = createBot({
 
 bot.loadPlugin(utilPlugin)
 bot.loadPlugin(enderPearling);
+bot.loadPlugin(pathfinder);
 let pearlThrown: boolean = false
 
 //lazy implementation. Will automate throwing later.
@@ -50,7 +52,7 @@ bot.on("chat", async (username, message) => {
             break;
         case "stop":
         case "cease":
-            bot.util.move.stop()
+            bot.pathfinder.setGoal(null);
             break;
     }
 });
@@ -75,5 +77,6 @@ function come(name?: string) {
         console.log("no entity");
         return;
     }
-    bot.util.move.followEntityWithRespectRange(comeTarget, 3);
+    bot.pathfinder.setGoal(new goals.GoalFollow(comeTarget, 3), true);
+    // bot.util.move.followEntityWithRespectRange(comeTarget, 3);
 }

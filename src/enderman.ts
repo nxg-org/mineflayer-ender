@@ -64,7 +64,7 @@ export class Enderman {
         const equipped = await this.equipPearls();
         if (!equipped) {
             this.pearling = false;
-            console.log("No pearls.");
+            // console.log("No pearls.");
             return false;
         }
 
@@ -80,13 +80,13 @@ export class Enderman {
 
         if (!shotInfo.hit) {
             this.pearling = false;
-            console.log("Invalid shot info.");
+            // console.log("Invalid shot info.");
             return false;
         }
 
 
         await this.bot.util.move.forceLook(shotInfo.yaw, shotInfo.pitch, true);
-        while (!this.pearlReady) await sleep(0);
+        while (!this.pearlReady) await sleep(10);
         //will update plugin in a sec
 
         this.bot.swingArm(undefined);
@@ -94,13 +94,13 @@ export class Enderman {
         this.bot.deactivateItem();
         this.lastPearl = performance.now();
         this.pearling = false;
-        for (let i = 0; i < 3; i++) {
-            for (const pos of initShot.points) {
-                const { x, y, z } = pos;
-                this.bot.chat(`/particle flame ${x} ${y} ${z} 0 0 0 0 1 force`);
-            }
-            await sleep(1000);
-        }
+        // for (let i = 0; i < 3; i++) {
+        //     for (const pos of initShot.points) {
+        //         const { x, y, z } = pos;
+        //         this.bot.chat(`/particle flame ${x} ${y} ${z} 0 0 0 0 1 force`);
+        //     }
+        //     await sleep(1000);
+        // }
 
         return true;
     }

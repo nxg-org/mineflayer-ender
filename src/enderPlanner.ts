@@ -1,6 +1,6 @@
 import { Bot } from "mineflayer";
 import { EnderShotFactory } from "./enderShotFactory";
-import { degreesToRadians, getTargetYaw, vectorMagnitude, yawPitchAndSpeedToDir } from "./calc/mathUtilts";
+import { degreesToRadians, getTargetYaw, vectorMagnitude, yawPitchAndSpeedToDir } from "./calc/mathUtils";
 import { Vec3 } from "vec3";
 import { AABB, InterceptFunctions } from "@nxg-org/mineflayer-util-plugin";
 import { getBlockAABB, getBlockPosAABB, getEntityAABB } from "./calc/aabbUtil";

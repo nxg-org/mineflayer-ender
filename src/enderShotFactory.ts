@@ -2,7 +2,7 @@ import { InterceptFunctions } from "@nxg-org/mineflayer-util-plugin/lib";
 import { Bot } from "mineflayer";
 import { Vec3 } from "vec3";
 import { trajectoryInfo } from "./calc/constants";
-import { vectorMagnitude, yawPitchAndSpeedToDir } from "./calc/mathUtilts";
+import { vectorMagnitude, yawPitchAndSpeedToDir } from "./calc/mathUtils";
 import { EnderShot } from "./enderShot";
 import { ProjectileInfo, ProjectileMotion, ShotEntity } from "./types";
 
