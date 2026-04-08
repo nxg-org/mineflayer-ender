@@ -8,13 +8,15 @@ import { AABBComponents, BasicShotInfo, CheckedShot, CheckShotInfo, pitchAndTick
 import { Block } from "prismarine-block";
 
 const emptyVec = new Vec3(0, 0, 0);
-const dv = Math.PI / 720;
+const dv = (steps: number) => Math.PI / steps
 const PIOver2 = Math.PI / 2;
 const PIOver3 = Math.PI / 3;
 
 export class EnderShotPlanner {
     public onlyTargetBlock: boolean = true;
     private intercepter: InterceptFunctions;
+    public dvSteps: number = 720;
+
     constructor(private bot: Bot) {
         this.intercepter = new InterceptFunctions(bot);
     }
@@ -80,7 +82,8 @@ export class EnderShotPlanner {
     public getNextShot(target: Block, yaw: number, minPitch: number = -PIOver2): CheckShotInfo {
         let shiftPos: boolean = true;
         let hittingData: pitchAndTicks[] = [];
-        for (let pitch = minPitch + dv; pitch < PIOver2; pitch += dv) {
+        const dvS = dv(this.dvSteps);
+        for (let pitch = minPitch + dvS; pitch < PIOver2; pitch += dvS) {
             if (pitch > PIOver3) shiftPos = false;
             const initShot = EnderShotFactory.fromPlayer(
                 { position: this.bot.entity.position, yaw, pitch, velocity: this.originVel },
