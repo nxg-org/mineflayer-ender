@@ -8,12 +8,12 @@ import { BlockFace, CheckedShot } from "./types";
 import { Block } from "prismarine-block";
 import { EnderShotFactory } from "./enderShotFactory";
 import { EnderShot } from "./enderShot";
-import { AABB } from "@nxg-org/mineflayer-util-plugin";
+import { AABB, AABBUtils } from "@nxg-org/mineflayer-util-plugin";
 
 const sleep = promisify(setTimeout);
 const emptyVec = new Vec3(0, 0, 0);
 
-function deltaRad (yaw1: number, yaw2: number) {
+function deltaRad(yaw1: number, yaw2: number) {
     const PI = Math.PI
     const PI_2 = Math.PI * 2
     let dYaw = (yaw1 - yaw2) % PI_2
@@ -26,6 +26,8 @@ export class Enderman {
     public enabled: boolean = false;
     public useOffhand: boolean = false;
     public trailDebug: boolean = false;
+    public epsilon: number = 1e-2;
+
     // public tracker: EntityTracker;
     private lastPearl: number = performance.now();
     private pearling: boolean = false;
@@ -35,6 +37,10 @@ export class Enderman {
     private waitTime: number = 1000;
     private lastSentYaw: number = NaN;
     private lastSentPitch: number = NaN;
+
+    public set dvStep(step: number) {
+        this.planner.dvSteps = step;
+    }
 
     constructor(private bot: Bot) {
         this.planner = new EnderShotPlanner(bot);
@@ -77,10 +83,10 @@ export class Enderman {
         this.bot.deactivateItem();
     }
 
-    public async pearl(block: Block, face?: number): Promise<boolean> {
+    public async pearlAABB(target: AABB, tPos: Vec3, face?: number): Promise<boolean> {
         if (this.pearling) return false;
         this.pearling = true;
-        const shotInfo = this.shotToBlock(block, face);
+        const shotInfo = this.shotToAABB(target, tPos, face);
         const equipped = await this.equipPearls();
         if (!equipped) {
             this.pearling = false;
@@ -92,11 +98,6 @@ export class Enderman {
             this.pearling = false;
             return false;
         }
-        const initShot = EnderShotFactory.fromPlayer(
-            { position: this.bot.entity.position, yaw: shotInfo.yaw, pitch: shotInfo.pitch, velocity: emptyVec },
-            this.bot
-        );
-        initShot.calcToBlock(block, true);
 
         if (!shotInfo.hit) {
             this.pearling = false;
@@ -104,11 +105,8 @@ export class Enderman {
             return false;
         }
 
-     
         await this.bot.look(shotInfo.yaw, shotInfo.pitch, true);
-
-        const epsilon = 5e-3
-        
+     
         const epsilonEquiv = (a: number, b: number, eps: number) => Math.abs(deltaRad(a, b)) < eps
 
         // force this to halt until we're actually looking.
@@ -116,13 +114,19 @@ export class Enderman {
             !this.pearlReady ||
             !Number.isFinite(this.lastSentYaw) ||
             !Number.isFinite(this.lastSentPitch) ||
-            !epsilonEquiv(shotInfo.yaw, this.lastSentYaw, epsilon) ||
-            !epsilonEquiv(shotInfo.pitch, this.lastSentPitch, epsilon)
+            !epsilonEquiv(shotInfo.yaw, this.lastSentYaw, this.epsilon) ||
+            !epsilonEquiv(shotInfo.pitch, this.lastSentPitch, this.epsilon)
         ) {
+            console.log(
+                epsilonEquiv(shotInfo.yaw, this.lastSentYaw, this.epsilon),
+                epsilonEquiv(shotInfo.pitch, this.lastSentPitch, this.epsilon)
+            )
             await sleep(10);
+            await this.bot.look(shotInfo.yaw, shotInfo.pitch, true);
+
         }
         //will update plugin in a sec
-    
+
         this.bot.swingArm(undefined);
         this.bot.activateItem();
         this.bot.deactivateItem();
@@ -130,10 +134,19 @@ export class Enderman {
         this.pearling = false;
 
         if (this.trailDebug) {
+            const initShot = EnderShotFactory.fromPlayer(
+                { position: this.bot.entity.position, yaw: shotInfo.yaw, pitch: shotInfo.pitch, velocity: emptyVec },
+                this.bot
+            );
+            initShot.calcToAABB(target, tPos, true);
             this.showTrail(initShot)
         }
 
         return true;
+    }
+
+    public async pearl(block: Block, face?: number): Promise<boolean> {
+        return this.pearlAABB(AABBUtils.getBlockAABB(block), block.position.offset(0.5, 0.5, 0.5), face)
     }
 
     public async showTrail(initShot: EnderShot) {

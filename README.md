@@ -12,7 +12,7 @@
 </p>
 
 > [!WARNING]
-> This plugin is still under active iteration. The core pearling flow works, but the API is still fairly low-level and focused on block-targeted pearl shots.
+> This plugin is still under active iteration. The core pearling flow works, but the API is still fairly low-level.
 
 <h3 align="center">Why use this plugin?</h3>
 
@@ -23,6 +23,7 @@
 It is useful when you want a bot to:
 
 - Pearl onto a specific block
+- Pearl into an arbitrary world-space AABB target
 - Plan whether a pearl shot is valid before throwing
 - Reuse projectile simulation logic in your own combat or movement systems
 - Build more "enderman-like" movement around a clean plugin surface
@@ -35,6 +36,7 @@ It is useful when you want a bot to:
 - [X] Check whether pearls are available in inventory
 - [X] Auto-equip pearls before throwing
 - [X] Plan a valid pearl shot to a target block
+- [X] Plan a valid pearl shot to a target AABB
 - [X] Expose low-level shot simulation via `EnderShotFactory`
 - [ ] Higher-level chase / combat automation
 - [ ] Broader polished docs and examples
@@ -78,15 +80,28 @@ bot.once("spawn", async () => {
 });
 ```
 
+```ts
+import { AABB } from "@nxg-org/mineflayer-util-plugin";
+import { Vec3 } from "vec3";
+
+const targetPos = new Vec3(10.5, 65.5, -20.5);
+const targetAABB = new AABB(10, 65, -21, 11, 66, -20);
+const success = await bot.ender.pearlAABB(targetAABB, targetPos);
+```
+
 There is also a chat-driven usage example in [`example/basic.ts`](./example/basic.ts).
 
 <h3 align="center">Usage Notes</h3>
 
 -----
 
-- The plugin is centered around block-targeted pearl throws, not arbitrary teleport destinations.
+- `targetAABB` is expected to be in world coordinates (not a unit/local box).
+- `targetPos` should describe the same world-space target region as `targetAABB`.
 - `bot.ender.pearl(block, face?)` returns `false` when no valid shot is found or no pearls are available.
+- `bot.ender.pearlAABB(targetAABB, targetPos, face?)` is the generic high-level throw API.
 - `shotToBlock()` can be used to inspect a candidate shot before actually throwing.
+- `shotToAABB()` can be used to inspect a candidate AABB shot before actually throwing.
+- Look-send synchronization uses Mineflayer's `move` event, not private internal fields.
 - Off-hand support exists on the `Enderman` instance through `useOffhand`.
 
 <h3 align="center">API and Examples</h3>

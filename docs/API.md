@@ -95,6 +95,22 @@ Returns:
 - `CheckedShot` when planning succeeds
 - `null` when no viable shot is found
 
+### `shotToAABB(targetAABB: AABB, targetPos: Vec3, face?: BlockFace): CheckedShot | null`
+
+Calculates a candidate pearl shot to an arbitrary world-space AABB.
+
+```ts
+const shot = bot.ender.shotToAABB(targetAABB, targetPos);
+if (shot?.hit) {
+  console.log(shot.yaw, shot.pitch, shot.ticks);
+}
+```
+
+Notes:
+
+- `targetAABB` should be in world coordinates.
+- `targetPos` should be a representative point for that same target area (used by planner heuristics).
+
 ### `hasPearls(): boolean`
 
 Checks whether the bot has any item whose name includes `"_pearl"` in inventory.
@@ -121,12 +137,12 @@ Stops the current ender action state and deactivates the held item.
 
 If a shot is mid-charge and internal shot info exists, it also forces the bot to look back toward that stored shot direction before cancelling.
 
-### `pearl(block: Block, face?: number): Promise<boolean>`
+### `pearlAABB(target: AABB, tPos: Vec3, face?: number): Promise<boolean>`
 
-Main high-level method for throwing a pearl at a target block.
+Main high-level method for throwing a pearl at an arbitrary world-space AABB.
 
 ```ts
-const success = await bot.ender.pearl(targetBlock, 1);
+const success = await bot.ender.pearlAABB(targetAABB, targetPos, 1);
 ```
 
 Behavior:
@@ -136,6 +152,7 @@ Behavior:
 - equips pearls if needed
 - force-looks to the computed yaw and pitch
 - waits for an internal pearl cooldown gate
+- waits for sent-look alignment using Mineflayer's `move` event tracking
 - swings and activates the held item to throw the pearl
 
 Returns `false` when:
@@ -146,6 +163,14 @@ Returns `false` when:
 - shot validation fails
 
 Returns `true` after the throw sequence is triggered.
+
+### `pearl(block: Block, face?: number): Promise<boolean>`
+
+Convenience wrapper over `pearlAABB(...)` for block targets.
+
+```ts
+const success = await bot.ender.pearl(targetBlock, 1);
+```
 
 ## `EnderShotFactory`
 
@@ -177,7 +202,7 @@ This is a lower-level helper for custom simulations.
 
 ## `EnderShot`
 
-`EnderShot` is not re-exported from `src/index.ts`, but it is part of the internal API surface used by the factory. It stores simulated trajectory points and can evaluate collisions against a target block.
+`EnderShot` is not re-exported from `src/index.ts`, but it is part of the internal API surface used by the factory. It stores simulated trajectory points and can evaluate collisions against world-space AABBs or block targets.
 
 ### Important Properties
 
@@ -191,9 +216,13 @@ This is a lower-level helper for custom simulations.
 - `blockHit: boolean`
 - `blockCheck: boolean`
 
-### `calcToBlock(target: Block | Vec3, blockChecking = false): BasicShotInfo`
+### `calcToAABB(targetAABB: AABB, targetPos: Vec3, blockChecking = false): BasicShotInfo`
 
-Simulates a projectile trajectory until it intersects the target block area or collides with another block.
+Simulates a projectile trajectory until it intersects the target AABB or collides with another block.
+
+### `calcToBlock(target: Block, blockChecking = false): BasicShotInfo`
+
+Convenience wrapper for block targets. Internally builds a block AABB and calls `calcToAABB(...)`.
 
 The returned `BasicShotInfo` includes:
 
@@ -224,7 +253,7 @@ type CheckedShot = {
 };
 ```
 
-Returned by planner operations like `shotToBlock()`.
+Returned by planner operations like `shotToBlock()` and `shotToAABB()`.
 
 ## `BlockFace`
 
@@ -270,9 +299,16 @@ if (target) {
 }
 ```
 
+```ts
+const shot = bot.ender.shotToAABB(targetAABB, targetPos);
+if (shot?.hit) {
+  await bot.ender.pearlAABB(targetAABB, targetPos, shot.shotInfo?.blockFace);
+}
+```
+
 ## Caveats
 
-- The plugin is focused on pearl-to-block planning, not a broad teleport behavior framework
+- The plugin is focused on pearl trajectory planning and throw execution, not a broad teleport behavior framework
 - Several internal Mineflayer event declarations in `src/index.ts` are not emitted by the implementation shown here
 - `EnderShot` itself is not re-exported from the package root
 - The public API is still fairly low-level compared with more polished Mineflayer movement plugins

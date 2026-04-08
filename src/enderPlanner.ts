@@ -52,7 +52,7 @@ export class EnderShotPlanner {
     }
 
     shotToAABB(targetAABB: AABB, targetPos: Vec3, face?: number, pitch: number = -PIOver2): CheckedShot | null {
-        const yaw = getTargetYaw(this.bot.entity.position, targetPos.offset(0.5, 0, 0.5));
+        const yaw = getTargetYaw(this.bot.entity.position, targetPos);
         while (pitch < PIOver2) {
             const initInfo = this.getNextAABBShot(targetAABB, targetPos, yaw, pitch);
             if (isNaN(initInfo.pitch)) {
@@ -129,7 +129,7 @@ export class EnderShotPlanner {
             const yaws = targetAABB
                 .toVertices()
                 .map((p) => getTargetYaw(this.bot.entity.position, p))
-                .sort((a, b) => orgYaw - Math.abs(a) - (orgYaw - Math.abs(b)));
+                .sort((a, b) => (orgYaw - Math.abs(a)) - (orgYaw - Math.abs(b)));
             let inbetween = [yaws.pop()!, yaws.pop()!];
             inbetween = inbetween.map((y) => y + Math.sign(orgYaw - y) * 0.02);
             for (const yaw of inbetween) {
