@@ -8,7 +8,7 @@ import { AABBComponents, BasicShotInfo, CheckedShot, CheckShotInfo, pitchAndTick
 import { Block } from "prismarine-block";
 
 const emptyVec = new Vec3(0, 0, 0);
-const dv = Math.PI / 360;
+const dv = Math.PI / 720;
 const PIOver2 = Math.PI / 2;
 const PIOver3 = Math.PI / 3;
 
@@ -52,7 +52,6 @@ export class EnderShotPlanner {
         while (pitch < PIOver2) {
             const initInfo = this.getNextShot(target, yaw, pitch);
             if (isNaN(initInfo.pitch)) {
-                console.log("shit...");
                 return null;
             }
             pitch = initInfo.pitch;
