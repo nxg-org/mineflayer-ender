@@ -21,6 +21,6 @@ export class EnderShotFactory {
     }
 
     static fromEntity({ position, velocity }: ProjectileInfo, bot: Bot, interceptCalcs?: InterceptFunctions) {
-        return new EnderShot(velocity, { position, velocity, gravity: shotInfo.g }, bot, interceptCalcs);
+        return new EnderShot(emptyVec, { position, velocity, gravity: shotInfo.g }, bot, interceptCalcs);
     }
 }

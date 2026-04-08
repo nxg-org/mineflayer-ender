@@ -1,6 +1,6 @@
 {
     "name": "@nxg-org/mineflayer-ender",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "description": "A plugin dedicated to bots being like endermen.",
     "keywords": [
         "mineflayer",
@@ -19,7 +19,8 @@
     "scripts": {
         "build": "npx tsc",
         "prepublish": "npm run build",
-        "test": "node --trace-warnings lib/example.js"
+        "test": "node --trace-warnings lib/example.js",
+        "test:static": "npx tsc -p tsconfig.test.json && node test-dist/test/all.static.test.js"
     },
     "dependencies": {
         "@nxg-org/mineflayer-trajectories": "^1.0.4",

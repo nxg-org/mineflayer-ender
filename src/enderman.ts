@@ -58,12 +58,12 @@ export class Enderman {
         return performance.now() - this.lastPearl >= this.waitTime;
     }
 
-    public shotToBlock(block: Block, face?: BlockFace) {
-        return this.planner.shotToBlock(block, face);
+    public shotToBlock(block: Block, face?: BlockFace, minFlightTicks: number = 0) {
+        return this.planner.shotToBlock(block, face, undefined, minFlightTicks);
     }
 
-    public shotToAABB(targetAABB: AABB, targetPos: Vec3, face?: BlockFace) {
-        return this.planner.shotToAABB(targetAABB, targetPos, face);
+    public shotToAABB(targetAABB: AABB, targetPos: Vec3, face?: BlockFace, minFlightTicks: number = 0) {
+        return this.planner.shotToAABB(targetAABB, targetPos, face, undefined, minFlightTicks);
     }
 
     public hasPearls(): boolean {

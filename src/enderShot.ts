@@ -54,6 +54,7 @@ export class EnderShot {
     readonly initialYaw: number;
     readonly initialPitch: number;
     readonly gravity: number;
+    public maxTicks: number = 300;
     public points: Vec3[];
     public pointVelocities: Vec3[];
     public blockHit = false;
@@ -65,7 +66,8 @@ export class EnderShot {
         originVel: Vec3,
         { position: pPos, velocity: pVel, gravity }: Required<ProjectileMotion>,
         bot: Bot,
-        interceptCalcs?: InterceptFunctions
+        interceptCalcs?: InterceptFunctions,
+        maxTicks: number = 300
     ) {
     
         const { yaw, pitch } = dirToYawAndPitch(pVel);
@@ -78,6 +80,7 @@ export class EnderShot {
         this.pointVelocities = [];
         this.bot = bot;
         this.interceptCalcs = interceptCalcs ?? new InterceptFunctions(bot);
+        this.maxTicks = maxTicks;
     }
 
     public calcToAABB(targetAABB: AABB, targetPos: Vec3, blockChecking: boolean = false): BasicShotInfo {
@@ -100,7 +103,7 @@ export class EnderShot {
         let offsetY: number;
         let offsetZ: number;
 
-        while (totalTicks < 300) {
+        while (totalTicks < this.maxTicks) {
             totalTicks++;
             offsetX = -currentVelocity.x * airResistance.h;
             offsetY = -currentVelocity.y * airResistance.y + gravity;

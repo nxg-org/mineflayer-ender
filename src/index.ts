@@ -22,5 +22,5 @@ export default function plugin(bot: Bot) {
     bot.ender = new Enderman(bot);
 }
 
-export { EnderShotFactory };
+export { EnderShotFactory, EnderShot };
 export { Enderman };
