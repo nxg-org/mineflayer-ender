@@ -42,6 +42,10 @@ export class Enderman {
         this.planner.dvSteps = step;
     }
 
+    public set alternativeShots(value: boolean) {
+        this.planner
+    }
+
     constructor(private bot: Bot) {
         this.planner = new EnderShotPlanner(bot);
         this.bot.on("move", () => {
@@ -117,10 +121,6 @@ export class Enderman {
             !epsilonEquiv(shotInfo.yaw, this.lastSentYaw, this.epsilon) ||
             !epsilonEquiv(shotInfo.pitch, this.lastSentPitch, this.epsilon)
         ) {
-            console.log(
-                epsilonEquiv(shotInfo.yaw, this.lastSentYaw, this.epsilon),
-                epsilonEquiv(shotInfo.pitch, this.lastSentPitch, this.epsilon)
-            )
             await sleep(10);
             await this.bot.look(shotInfo.yaw, shotInfo.pitch, true);
 
