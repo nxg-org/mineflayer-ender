@@ -8,22 +8,19 @@ import { BlockFace, CheckedShot } from "./types";
 import { Block } from "prismarine-block";
 import { EnderShotFactory } from "./enderShotFactory";
 import { EnderShot } from "./enderShot";
-
-const conv = require("mineflayer/lib/conversions.js");
-
+import { AABB } from "@nxg-org/mineflayer-util-plugin";
 
 const sleep = promisify(setTimeout);
 const emptyVec = new Vec3(0, 0, 0);
 
-        function deltaYawRadians (yaw1: number, yaw2: number) {
-            const PI = Math.PI
-            const PI_2 = Math.PI * 2
-            let dYaw = (yaw1 - yaw2) % PI_2
-            if (dYaw < -PI) dYaw += PI_2
-            else if (dYaw > PI) dYaw -= PI_2
-            return dYaw
-            }
-
+function deltaRad (yaw1: number, yaw2: number) {
+    const PI = Math.PI
+    const PI_2 = Math.PI * 2
+    let dYaw = (yaw1 - yaw2) % PI_2
+    if (dYaw < -PI) dYaw += PI_2
+    else if (dYaw > PI) dYaw -= PI_2
+    return dYaw
+}
 
 export class Enderman {
     public enabled: boolean = false;
@@ -36,9 +33,15 @@ export class Enderman {
     private planner: EnderShotPlanner;
     private shotInfo: CheckedShot | null = null;
     private waitTime: number = 1000;
+    private lastSentYaw: number = NaN;
+    private lastSentPitch: number = NaN;
 
     constructor(private bot: Bot) {
         this.planner = new EnderShotPlanner(bot);
+        this.bot.on("move", () => {
+            this.lastSentYaw = this.bot.entity.yaw;
+            this.lastSentPitch = this.bot.entity.pitch;
+        });
     }
 
     private get pearlReady(): boolean {
@@ -47,6 +50,10 @@ export class Enderman {
 
     public shotToBlock(block: Block, face?: BlockFace) {
         return this.planner.shotToBlock(block, face);
+    }
+
+    public shotToAABB(targetAABB: AABB, targetPos: Vec3, face?: BlockFace) {
+        return this.planner.shotToAABB(targetAABB, targetPos, face);
     }
 
     public hasPearls(): boolean {
@@ -101,17 +108,21 @@ export class Enderman {
         await this.bot.look(shotInfo.yaw, shotInfo.pitch, true);
 
         const epsilon = 5e-3
-        const lastSentYaw = () => conv.fromNotchianYaw((this.bot as any)._lastSent.yaw)
-        const lastSentPitch = () => conv.fromNotchianPitch((this.bot as any)._lastSent.pitch)
         
-        const epsilonEquiv = (a: number, b: number, eps: number) => Math.abs(deltaYawRadians(a, b)) < eps
+        const epsilonEquiv = (a: number, b: number, eps: number) => Math.abs(deltaRad(a, b)) < eps
 
         // force this to halt until we're actually looking.
-        while (!this.pearlReady || !epsilonEquiv(shotInfo.yaw, lastSentYaw(), epsilon) || !epsilonEquiv(shotInfo.pitch, lastSentPitch(), epsilon)) {
+        while (
+            !this.pearlReady ||
+            !Number.isFinite(this.lastSentYaw) ||
+            !Number.isFinite(this.lastSentPitch) ||
+            !epsilonEquiv(shotInfo.yaw, this.lastSentYaw, epsilon) ||
+            !epsilonEquiv(shotInfo.pitch, this.lastSentPitch, epsilon)
+        ) {
             await sleep(10);
         }
         //will update plugin in a sec
-
+    
         this.bot.swingArm(undefined);
         this.bot.activateItem();
         this.bot.deactivateItem();

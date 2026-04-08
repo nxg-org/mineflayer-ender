@@ -80,10 +80,8 @@ export class EnderShot {
         this.interceptCalcs = interceptCalcs ?? new InterceptFunctions(bot);
     }
 
-    public calcToBlock(target: Block, blockChecking: boolean = false): BasicShotInfo {
-        let targetPos = target.position;
-        targetPos.floor();
-        const targetAABB = getBlockPosAABB(targetPos)
+    public calcToAABB(targetAABB: AABB, targetPos: Vec3, blockChecking: boolean = false): BasicShotInfo {
+        const normalizedTargetPos = targetPos.floored();
 
         let currentVelocity = this.initialVel.clone();
         let currentPosition = this.initialPos.clone();
@@ -108,7 +106,7 @@ export class EnderShot {
             offsetY = -currentVelocity.y * airResistance.y + gravity;
             offsetZ = -currentVelocity.z * airResistance.h;
 
-            const posDistance = targetPos.distanceTo(currentPosition);
+            const posDistance = normalizedTargetPos.distanceTo(currentPosition);
             if (nearestDistance > posDistance) {
                 nearestDistance = posDistance;
                 closestPoint = currentPosition.clone();
@@ -119,9 +117,9 @@ export class EnderShot {
                 if (blockInfo.block && blockInfo.block.name !== "air") {
                     blockHit = blockInfo.block;
                     blockHitFace = blockInfo.iterations[0].face; //todo, make cleaner.
-                    XZLandingDistance = targetPos.xzDistanceTo(blockInfo.block.position) //todo: get block interception point.
-                    YLandingDistance = Math.abs(targetPos.y - blockInfo.block.position.y)
-                    if (closestPoint.distanceTo(targetPos) > blockInfo.block.position.distanceTo(targetPos)) closestPoint = blockInfo.block.position.clone()
+                    XZLandingDistance = normalizedTargetPos.xzDistanceTo(blockInfo.block.position) //todo: get block interception point.
+                    YLandingDistance = Math.abs(normalizedTargetPos.y - blockInfo.block.position.y)
+                    if (closestPoint.distanceTo(normalizedTargetPos) > blockInfo.block.position.distanceTo(normalizedTargetPos)) closestPoint = blockInfo.block.position.clone()
                     break;
                 }
             }
@@ -154,5 +152,10 @@ export class EnderShot {
             closestPoint,
             totalTicks
         }
+    }
+
+    public calcToBlock(target: Block, blockChecking: boolean = false): BasicShotInfo {
+        const targetPos = target.position.floored();
+        return this.calcToAABB(getBlockPosAABB(targetPos), targetPos, blockChecking);
     }
 }

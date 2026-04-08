@@ -25,10 +25,7 @@ export class EnderShotPlanner {
         return this.bot.entity.velocity.clone().translate(0, this.bot.entity.onGround ? -this.bot.entity.velocity.y : 0, 0)
     }
 
-    private isShotValid(shotInfo1: CheckedShot | BasicShotInfo, target: Block | Vec3, pitch: number, face?: number) {
-        if (!(target instanceof Vec3)) {
-            target = target.position;
-        }
+    private isShotValid(shotInfo1: CheckedShot | BasicShotInfo, face?: number) {
         let shotInfo = (shotInfo1 as CheckedShot).shotInfo;
         if (!shotInfo) shotInfo = shotInfo1 as BasicShotInfo;
         //@ts-expect-error
@@ -50,36 +47,51 @@ export class EnderShotPlanner {
      * @returns {CheckedShot} the shot.
      */
     shotToBlock(target: Block, face?: number, pitch: number = -PIOver2): CheckedShot | null {
-        const yaw = getTargetYaw(this.bot.entity.position, target.position.offset(0.5, 0, 0.5));
+        const targetPos = target.position.floored();
+        return this.shotToAABB(getBlockPosAABB(targetPos), targetPos, face, pitch);
+    }
+
+    shotToAABB(targetAABB: AABB, targetPos: Vec3, face?: number, pitch: number = -PIOver2): CheckedShot | null {
+        const yaw = getTargetYaw(this.bot.entity.position, targetPos.offset(0.5, 0, 0.5));
         while (pitch < PIOver2) {
-            const initInfo = this.getNextShot(target, yaw, pitch);
+            const initInfo = this.getNextAABBShot(targetAABB, targetPos, yaw, pitch);
             if (isNaN(initInfo.pitch)) {
                 return null;
             }
             pitch = initInfo.pitch;
-            const correctShot = this.checkForBlockIntercepts(target, face, initInfo);
+            const correctShot = this.checkForAABBIntercepts(targetAABB, targetPos, face, initInfo);
             if (correctShot.hit) return correctShot;
-            const yawShot = this.getAlternativeYawShots(target, face, initInfo);
-            if (this.isShotValid(yawShot, target, pitch)) return yawShot;
+            const yawShot = this.getAlternativeYawAABBShots(targetAABB, targetPos, face, initInfo);
+            if (this.isShotValid(yawShot, face)) return yawShot;
         }
         return null;
     }
 
 
-    public checkForBlockIntercepts(target: Block, face?: number, ...shots: CheckShotInfo[]): CheckedShot {
+    public checkForAABBIntercepts(targetAABB: AABB, targetPos: Vec3, face?: number, ...shots: CheckShotInfo[]): CheckedShot {
         for (const { pitch, ticks, yaw } of shots) {
             const initShot = EnderShotFactory.fromPlayer(
                 { position: this.bot.entity.position, yaw, pitch, velocity: this.originVel },
                 this.bot,
                 this.intercepter
             );
-            const shot = initShot.calcToBlock(target, true);
-            if (this.isShotValid(shot, target, pitch, face)) return { hit: true, yaw, pitch, ticks, shotInfo: shot };
+            const shot = initShot.calcToAABB(targetAABB, targetPos, true);
+            if (this.isShotValid(shot, face)) return { hit: true, yaw, pitch, ticks, shotInfo: shot };
         }
         return { hit: false, yaw: NaN, pitch: NaN, ticks: NaN, shotInfo: null };
     }
 
+    public checkForBlockIntercepts(target: Block, face?: number, ...shots: CheckShotInfo[]): CheckedShot {
+        const targetPos = target.position.floored();
+        return this.checkForAABBIntercepts(getBlockPosAABB(targetPos), targetPos, face, ...shots);
+    }
+
     public getNextShot(target: Block, yaw: number, minPitch: number = -PIOver2): CheckShotInfo {
+        const targetPos = target.position.floored();
+        return this.getNextAABBShot(getBlockPosAABB(targetPos), targetPos, yaw, minPitch);
+    }
+
+    public getNextAABBShot(targetAABB: AABB, targetPos: Vec3, yaw: number, minPitch: number = -PIOver2): CheckShotInfo {
         let shiftPos: boolean = true;
         let hittingData: pitchAndTicks[] = [];
         const dvS = dv(this.dvSteps);
@@ -90,8 +102,8 @@ export class EnderShotPlanner {
                 this.bot,
                 this.intercepter
             );
-            const shot = initShot.calcToBlock(target);
-            if (!this.isShotValid(shot, target, pitch)) {
+            const shot = initShot.calcToAABB(targetAABB, targetPos);
+            if (!this.isShotValid(shot)) {
                 //     continue
                 // }
                 // return { yaw, pitch, ticks: Math.ceil(shot.totalTicks), shift: shiftPos };
@@ -108,8 +120,13 @@ export class EnderShotPlanner {
     }
 
     public getAlternativeYawShots(target: Block, face?: number, ...shots: CheckShotInfo[]): CheckedShot {
+        const targetPos = target.position.floored();
+        return this.getAlternativeYawAABBShots(getBlockPosAABB(targetPos), targetPos, face, ...shots);
+    }
+
+    public getAlternativeYawAABBShots(targetAABB: AABB, targetPos: Vec3, face?: number, ...shots: CheckShotInfo[]): CheckedShot {
         for (const { pitch, yaw: orgYaw } of shots) {
-            const yaws = getBlockPosAABB(target.position)
+            const yaws = targetAABB
                 .toVertices()
                 .map((p) => getTargetYaw(this.bot.entity.position, p))
                 .sort((a, b) => orgYaw - Math.abs(a) - (orgYaw - Math.abs(b)));
@@ -121,8 +138,8 @@ export class EnderShotPlanner {
                     this.bot,
                     this.intercepter
                 );
-                const shot = initShot.calcToBlock(target, true);
-                if (this.isShotValid(shot, target, pitch, face)) {
+                const shot = initShot.calcToAABB(targetAABB, targetPos, true);
+                if (this.isShotValid(shot, face)) {
                     return { hit: true, yaw, pitch, ticks: shot.totalTicks, shotInfo: shot };
                 }
             }
