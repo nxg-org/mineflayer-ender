@@ -3,3 +3,7 @@
 .github/
 src/
 tsconfig.json
+test-dist/
+test/
+examples/
+shot-logs/
