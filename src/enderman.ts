@@ -1,7 +1,4 @@
 import { Bot } from "mineflayer";
-import { Entity } from "prismarine-entity";
-import { Item } from "prismarine-item";
-import md from "minecraft-data";
 import { performance } from "perf_hooks";
 import { promisify } from "util";
 import { EnderShotPlanner } from "./enderPlanner";
@@ -10,12 +7,28 @@ import { Vec3 } from "vec3";
 import { BlockFace, CheckedShot } from "./types";
 import { Block } from "prismarine-block";
 import { EnderShotFactory } from "./enderShotFactory";
+import { EnderShot } from "./enderShot";
+
+const conv = require("mineflayer/lib/conversions.js");
+
+
 const sleep = promisify(setTimeout);
 const emptyVec = new Vec3(0, 0, 0);
+
+        function deltaYawRadians (yaw1: number, yaw2: number) {
+            const PI = Math.PI
+            const PI_2 = Math.PI * 2
+            let dYaw = (yaw1 - yaw2) % PI_2
+            if (dYaw < -PI) dYaw += PI_2
+            else if (dYaw > PI) dYaw -= PI_2
+            return dYaw
+            }
+
 
 export class Enderman {
     public enabled: boolean = false;
     public useOffhand: boolean = false;
+    public trailDebug: boolean = false;
     // public tracker: EntityTracker;
     private lastPearl: number = performance.now();
     private pearling: boolean = false;
@@ -84,9 +97,19 @@ export class Enderman {
             return false;
         }
 
-
+     
         await this.bot.look(shotInfo.yaw, shotInfo.pitch, true);
-        while (!this.pearlReady) await sleep(10);
+
+        const epsilon = 5e-3
+        const lastSentYaw = () => conv.fromNotchianYaw((this.bot as any)._lastSent.yaw)
+        const lastSentPitch = () => conv.fromNotchianPitch((this.bot as any)._lastSent.pitch)
+        
+        const epsilonEquiv = (a: number, b: number, eps: number) => Math.abs(deltaYawRadians(a, b)) < eps
+
+        // force this to halt until we're actually looking.
+        while (!this.pearlReady || !epsilonEquiv(shotInfo.yaw, lastSentYaw(), epsilon) || !epsilonEquiv(shotInfo.pitch, lastSentPitch(), epsilon)) {
+            await sleep(10);
+        }
         //will update plugin in a sec
 
         this.bot.swingArm(undefined);
@@ -94,14 +117,21 @@ export class Enderman {
         this.bot.deactivateItem();
         this.lastPearl = performance.now();
         this.pearling = false;
-        // for (let i = 0; i < 3; i++) {
-        //     for (const pos of initShot.points) {
-        //         const { x, y, z } = pos;
-        //         this.bot.chat(`/particle flame ${x} ${y} ${z} 0 0 0 0 1 force`);
-        //     }
-        //     await sleep(1000);
-        // }
+
+        if (this.trailDebug) {
+            this.showTrail(initShot)
+        }
 
         return true;
+    }
+
+    public async showTrail(initShot: EnderShot) {
+        for (let i = 0; i < 3; i++) {
+            for (const pos of initShot.points) {
+                const { x, y, z } = pos;
+                this.bot.chat(`/particle flame ${x} ${y} ${z} 0 0 0 0 1 force`);
+            }
+            await sleep(1000);
+        }
     }
 }
