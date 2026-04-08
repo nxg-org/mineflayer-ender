@@ -80,8 +80,8 @@ export class EnderShot {
         this.interceptCalcs = interceptCalcs ?? new InterceptFunctions(bot);
     }
 
-    public calcToBlock(target: Block | Vec3, blockChecking: boolean = false): BasicShotInfo {
-        let targetPos = target instanceof Vec3 ? target : target.position;
+    public calcToBlock(target: Block, blockChecking: boolean = false): BasicShotInfo {
+        let targetPos = target.position;
         targetPos.floor();
         const targetAABB = getBlockPosAABB(targetPos)
 

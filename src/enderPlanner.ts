@@ -47,9 +47,8 @@ export class EnderShotPlanner {
      * @param pitch
      * @returns {CheckedShot} the shot.
      */
-    shotToBlock(target: Block | Vec3, face?: number, pitch: number = -PIOver2): CheckedShot | null {
-        if (!(target instanceof Vec3)) target = target.position.offset(0.5, 0, 0.5);
-        const yaw = getTargetYaw(this.bot.entity.position, target);
+    shotToBlock(target: Block, face?: number, pitch: number = -PIOver2): CheckedShot | null {
+        const yaw = getTargetYaw(this.bot.entity.position, target.position.offset(0.5, 0, 0.5));
         while (pitch < PIOver2) {
             const initInfo = this.getNextShot(target, yaw, pitch);
             if (isNaN(initInfo.pitch)) {
@@ -66,7 +65,7 @@ export class EnderShotPlanner {
     }
 
 
-    public checkForBlockIntercepts(target: Vec3, face?: number, ...shots: CheckShotInfo[]): CheckedShot {
+    public checkForBlockIntercepts(target: Block, face?: number, ...shots: CheckShotInfo[]): CheckedShot {
         for (const { pitch, ticks, yaw } of shots) {
             const initShot = EnderShotFactory.fromPlayer(
                 { position: this.bot.entity.position, yaw, pitch, velocity: this.originVel },
@@ -79,7 +78,7 @@ export class EnderShotPlanner {
         return { hit: false, yaw: NaN, pitch: NaN, ticks: NaN, shotInfo: null };
     }
 
-    public getNextShot(target: Vec3, yaw: number, minPitch: number = -PIOver2): CheckShotInfo {
+    public getNextShot(target: Block, yaw: number, minPitch: number = -PIOver2): CheckShotInfo {
         let shiftPos: boolean = true;
         let hittingData: pitchAndTicks[] = [];
         for (let pitch = minPitch + dv; pitch < PIOver2; pitch += dv) {
@@ -106,9 +105,9 @@ export class EnderShotPlanner {
         return { yaw: NaN, pitch: NaN, ticks: NaN };
     }
 
-    public getAlternativeYawShots(target: Vec3, face?: number, ...shots: CheckShotInfo[]): CheckedShot {
+    public getAlternativeYawShots(target: Block, face?: number, ...shots: CheckShotInfo[]): CheckedShot {
         for (const { pitch, yaw: orgYaw } of shots) {
-            const yaws = getBlockPosAABB(target)
+            const yaws = getBlockPosAABB(target.position)
                 .toVertices()
                 .map((p) => getTargetYaw(this.bot.entity.position, p))
                 .sort((a, b) => orgYaw - Math.abs(a) - (orgYaw - Math.abs(b)));
