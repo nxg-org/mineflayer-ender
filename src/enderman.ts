@@ -42,8 +42,8 @@ export class Enderman {
         this.planner.dvSteps = step;
     }
 
-    public set alternativeShots(value: boolean) {
-        this.planner
+    public set maxTicks(value: number) {
+        this.planner.maxTicks = value;
     }
 
     constructor(private bot: Bot) {

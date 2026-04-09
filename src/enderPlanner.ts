@@ -17,6 +17,7 @@ export class EnderShotPlanner {
     public onlyTargetBlock: boolean = true;
     private intercepter: InterceptFunctions;
     public dvSteps: number = 720;
+    public maxTicks: number = 300;
 
     constructor(private bot: Bot) {
         this.intercepter = new InterceptFunctions(bot);
@@ -119,6 +120,7 @@ export class EnderShotPlanner {
                 this.bot,
                 this.intercepter
             );
+            initShot.maxTicks = this.maxTicks;
             const shot = initShot.calcToAABB(targetAABB, targetPos, true);
             if (this.isShotValid(shot, face)) return { hit: true, yaw, pitch, ticks, shotInfo: shot };
         }
@@ -146,6 +148,7 @@ export class EnderShotPlanner {
                 this.bot,
                 this.intercepter
             );
+            initShot.maxTicks = this.maxTicks;
             const shot = initShot.calcToAABB(targetAABB, targetPos);
             if (!this.isShotValid(shot) || shot.totalTicks < minFlightTicks) continue;
 
@@ -177,6 +180,7 @@ export class EnderShotPlanner {
                     this.bot,
                     this.intercepter
                 );
+                initShot.maxTicks = this.maxTicks;
                 const shot = initShot.calcToAABB(targetAABB, targetPos, true);
                 if (this.isShotValid(shot, face)) {
                     return { hit: true, yaw, pitch, ticks: shot.totalTicks, shotInfo: shot };
