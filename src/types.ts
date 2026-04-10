@@ -6,12 +6,20 @@ export type ShotEntity = { position: Vec3; velocity: Vec3; yaw?: number; pitch?:
 export type AABBComponents = { position: Vec3; height: number; width?: number };
 export type ProjectileMotion = { position: Vec3; velocity: Vec3; gravity?: number };
 export type ProjectileInfo =  { position: Vec3; velocity: Vec3; name?: string }
+export type ShotBoundsCheck = (position: Vec3, nextPosition: Vec3, velocity: Vec3, totalTicks: number, targetPos: Vec3) => boolean;
+export type TrajectoryBoundsCheck = (position: Vec3, nextPosition: Vec3, velocity: Vec3, totalTicks: number) => boolean;
 export type BasicShotInfo = {
     XZLandingDistance: number;
     YLandingDistance: number;
     block: Block | null;
     blockFace?: BlockFace
     closestPoint: Vec3 | null;
+    totalTicks: number;
+};
+export type BasicTrajectoryInfo = {
+    block: Block | null;
+    blockFace?: BlockFace
+    finalPoint: Vec3;
     totalTicks: number;
 };
 

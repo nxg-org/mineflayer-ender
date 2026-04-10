@@ -1,16 +1,12 @@
 import { Vec3 } from "vec3";
 import type { Bot } from "mineflayer";
 import { Block } from "prismarine-block";
-import type { Entity } from "prismarine-entity";
-import type { Item } from "prismarine-item";
-import { dirToYawAndPitch, getPremonition } from "./calc/mathUtils";
-import { trajectoryInfo, airResistance, BlockFace } from "./calc/constants";
-import { getBlockAABB, getBlockPosAABB, getEntityAABB } from "./calc/aabbUtil";
-import { promisify } from "util";
+import { dirToYawAndPitch } from "./calc/mathUtils";
+import { airResistance, BlockFace } from "./calc/constants";
+import { getBlockPosAABB } from "./calc/aabbUtil";
 import { AABB, InterceptFunctions } from "@nxg-org/mineflayer-util-plugin";
-import { AABBComponents, BasicShotInfo, ProjectileMotion, ShotEntity } from "./types";
+import { BasicShotInfo, BasicTrajectoryInfo, ProjectileMotion, ShotBoundsCheck, TrajectoryBoundsCheck } from "./types";
 
-const emptyVec = new Vec3(0, 0, 0);
 type BlockAndIterations = {
     block: Block | null;
     iterations: Iteration[];
@@ -19,6 +15,7 @@ type BlockAndIterations = {
         face: BlockFace;
     };
 };
+
 type Iteration = {
     x: number;
     y: number;
@@ -26,31 +23,22 @@ type Iteration = {
     face: number;
 };
 
-/**
- * TODO: Change hit detection from AABB -> Ray to AABB -> Moving AABB of 0.5h, 0.5w.
- * ! We are "missing" shots due to this miscalculation.
- * * DONE! WOOOOOOOOOO
- *
- * TODO: Completely rewrite arrow trajectory calculation. Currently using assumptions, can be much better.
- * ! It is very fast; I will have to optimize even more.
- * * DONE! WOOOOOOOOOO
- *
- * TODO: Work on caching arrow trajectories. This will speed up repeated look-ups and encourage reuse of classes to save RAM/CPU.
- *
- */
+type SimulationState = {
+    currentPosition: Vec3;
+    currentVelocity: Vec3;
+    nextPosition: Vec3;
+    totalTicks: number;
+    offsetX: number;
+    offsetY: number;
+    offsetZ: number;
+    finalPoint: Vec3;
+};
 
-/**
- * uses:
- * (a) calculate shot based off current entities yaw and target
- * (b) calculate correct yaw and target
- * (c) better block detection
- * (d) velocity checks
- */
-
-/**
- * Purposely left off prediction.
- * You can handle that outside of the Shot class.
- */
+type BlockCollision = {
+    block: Block;
+    impactPoint: Vec3;
+    blockFace?: BlockFace;
+};
 
 export class EnderShot {
     readonly initialPos: Vec3;
@@ -58,22 +46,33 @@ export class EnderShot {
     readonly initialYaw: number;
     readonly initialPitch: number;
     readonly gravity: number;
-    public maxTicks: number = 300;
+    public maxTicks = 300;
     public points: Vec3[];
     public pointVelocities: Vec3[];
     public blockHit = false;
     private bot: Bot;
     public interceptCalcs: InterceptFunctions;
-    public blockCheck: boolean = false;
+    public blockCheck = false;
+    public isInBounds: ShotBoundsCheck = (position, _nextPosition, _velocity, _totalTicks, targetPos) => {
+        const horizontalDeltaX = targetPos.x - this.initialPos.x;
+        const horizontalDeltaZ = targetPos.z - this.initialPos.z;
+        const horizontalDistanceSq = horizontalDeltaX * horizontalDeltaX + horizontalDeltaZ * horizontalDeltaZ;
+        if (position.y < targetPos.y - 1) return false;
+        if (horizontalDistanceSq === 0) return true;
+
+        const deltaX = position.x - this.initialPos.x;
+        const deltaZ = position.z - this.initialPos.z;
+        const horizontalProgress = deltaX * horizontalDeltaX + deltaZ * horizontalDeltaZ;
+        return horizontalProgress <= horizontalDistanceSq;
+    };
 
     constructor(
         originVel: Vec3,
         { position: pPos, velocity: pVel, gravity }: Required<ProjectileMotion>,
         bot: Bot,
         interceptCalcs?: InterceptFunctions,
-        maxTicks: number = 300
+        maxTicks = 300
     ) {
-    
         const { yaw, pitch } = dirToYawAndPitch(pVel);
         this.initialPos = pPos.clone();
         this.initialVel = pVel.clone().add(originVel);
@@ -87,70 +86,103 @@ export class EnderShot {
         this.maxTicks = maxTicks;
     }
 
-    public calcToAABB(targetAABB: AABB, targetPos: Vec3, blockChecking: boolean = false): BasicShotInfo {
-        const normalizedTargetPos = targetPos.floored();
+    private createSimulationState(): SimulationState {
+        const currentPosition = this.initialPos.clone();
+        const currentVelocity = this.initialVel.clone();
+        return {
+            currentPosition,
+            currentVelocity,
+            nextPosition: currentPosition.clone().add(currentVelocity),
+            totalTicks: 0,
+            offsetX: 0,
+            offsetY: 0,
+            offsetZ: 0,
+            finalPoint: currentPosition.clone()
+        };
+    }
 
-        let currentVelocity = this.initialVel.clone();
-        let currentPosition = this.initialPos.clone();
-        let nextPosition = currentPosition.clone().add(currentVelocity);
-        let nearestDistance = targetAABB.distanceToVec(this.initialPos); // initial distance.
-        let XZLandingDistance: number = 100000; //todo, make cleaner.
-        let YLandingDistance: number = 100000;
-        let closestPoint: Vec3 = currentPosition.clone();
-        let blockInfo: BlockAndIterations;
+    private beginTick(state: SimulationState) {
+        state.totalTicks++;
+        state.offsetX = -state.currentVelocity.x * airResistance.h;
+        state.offsetY = -state.currentVelocity.y * airResistance.y + this.gravity;
+        state.offsetZ = -state.currentVelocity.z * airResistance.h;
+    }
+
+    private recordPoint(state: SimulationState) {
+        this.points.push(state.currentPosition.clone());
+        this.pointVelocities.push(state.currentVelocity.clone());
+        state.finalPoint = state.currentPosition.clone();
+    }
+
+    private advanceState(state: SimulationState) {
+        state.currentPosition.add(state.currentVelocity);
+        state.currentVelocity.translate(state.offsetX, state.offsetY, state.offsetZ);
+        state.nextPosition.add(state.currentVelocity);
+    }
+
+    private checkBlockCollision(state: SimulationState): BlockCollision | null {
+        const blockInfo = this.interceptCalcs.check(state.currentPosition, state.nextPosition) as BlockAndIterations;
+        if (!blockInfo.block || blockInfo.block.name === "air") return null;
+
+        return {
+            block: blockInfo.block,
+            impactPoint: (blockInfo.intersect?.pos ?? blockInfo.block.position).clone(),
+            blockFace: blockInfo.intersect?.face ?? blockInfo.iterations[0]?.face
+        };
+    }
+
+    private simulateToTarget(targetAABB: AABB, targetPos: Vec3, blockChecking: boolean, isInBounds?: ShotBoundsCheck): BasicShotInfo {
+        const boundsCheck = isInBounds ?? this.isInBounds;
+        const normalizedTargetPos = targetPos.floored();
+        const state = this.createSimulationState();
+        let nearestDistance = targetAABB.distanceToVec(this.initialPos);
+        let closestPoint = state.currentPosition.clone();
         let blockHit: Block | null = null;
         let blockHitFace: BlockFace | undefined;
+        let XZLandingDistance = 100000;
+        let YLandingDistance = 100000;
 
-        let totalTicks = 0;
-        const gravity: number = this.gravity //+ this.gravity * airResistance.y;
-        let offsetX: number;
-        let offsetY: number;
-        let offsetZ: number;
+        while (state.totalTicks < this.maxTicks) {
+            this.beginTick(state);
 
-        while (totalTicks < this.maxTicks) {
-            totalTicks++;
-            offsetX = -currentVelocity.x * airResistance.h;
-            offsetY = -currentVelocity.y * airResistance.y + gravity;
-            offsetZ = -currentVelocity.z * airResistance.h;
-
-            const posDistance = normalizedTargetPos.distanceTo(currentPosition);
+            const posDistance = normalizedTargetPos.distanceTo(state.currentPosition);
             if (nearestDistance > posDistance) {
                 nearestDistance = posDistance;
-                closestPoint = currentPosition.clone();
+                closestPoint = state.currentPosition.clone();
             }
 
             if (blockChecking) {
-                blockInfo = this.interceptCalcs.check(currentPosition, nextPosition);
-                if (blockInfo.block && blockInfo.block.name !== "air") {
-                    blockHit = blockInfo.block;
-                    const impactPoint = blockInfo.intersect?.pos ?? blockInfo.block.position;
-
-                    blockHitFace = blockInfo.intersect?.face ?? blockInfo.iterations[0]?.face; //todo, make cleaner.
-                    XZLandingDistance = normalizedTargetPos.xzDistanceTo(impactPoint)
-                    YLandingDistance = Math.abs(normalizedTargetPos.y - impactPoint.y)
-                    if (closestPoint.distanceTo(normalizedTargetPos) > impactPoint.distanceTo(normalizedTargetPos)) closestPoint = impactPoint.clone()
+                const collision = this.checkBlockCollision(state);
+                if (collision) {
+                    blockHit = collision.block;
+                    blockHitFace = collision.blockFace;
+                    state.finalPoint = collision.impactPoint;
+                    XZLandingDistance = normalizedTargetPos.xzDistanceTo(collision.impactPoint);
+                    YLandingDistance = Math.abs(normalizedTargetPos.y - collision.impactPoint.y);
+                    if (closestPoint.distanceTo(normalizedTargetPos) > collision.impactPoint.distanceTo(normalizedTargetPos)) {
+                        closestPoint = collision.impactPoint.clone();
+                    }
                     break;
                 }
             }
 
-            const intersection = targetAABB.intersectsSegment(currentPosition, nextPosition);
+            const intersection = targetAABB.intersectsSegment(state.currentPosition, state.nextPosition);
             if (intersection) {
                 blockHit = this.bot.blockAt(intersection);
-               
-                closestPoint = intersection.clone()
-                nearestDistance = 0;
+                blockHitFace = undefined;
+                closestPoint = intersection.clone();
+                state.finalPoint = intersection.clone();
                 XZLandingDistance = 0;
                 YLandingDistance = 0;
                 break;
             }
 
-            // console.log(currentPosition, nextPosition, totalTicks)
-            this.points.push(currentPosition.clone())
-            this.pointVelocities.push(currentVelocity.clone())
-            currentPosition.add(currentVelocity);
-            // currentVelocity.scale(Math.fround(1 - airResistance.y)).translate(0, this.gravity, 0)
-            currentVelocity.translate(offsetX, offsetY, offsetZ);
-            nextPosition.add(currentVelocity);
+            if (!boundsCheck(state.currentPosition, state.nextPosition, state.currentVelocity, state.totalTicks, targetPos)) {
+                break;
+            }
+
+            this.recordPoint(state);
+            this.advanceState(state);
         }
 
         return {
@@ -159,12 +191,54 @@ export class EnderShot {
             block: blockHit,
             blockFace: blockHitFace,
             closestPoint,
-            totalTicks
-        }
+            totalTicks: state.totalTicks
+        };
     }
 
-    public calcToBlock(target: Block, blockChecking: boolean = false): BasicShotInfo {
+    private simulateTrajectoryOnly(blockChecking: boolean, isInBounds?: TrajectoryBoundsCheck): BasicTrajectoryInfo {
+        const state = this.createSimulationState();
+        let blockHit: Block | null = null;
+        let blockHitFace: BlockFace | undefined;
+
+        while (state.totalTicks < this.maxTicks) {
+            this.beginTick(state);
+
+            if (blockChecking) {
+                const collision = this.checkBlockCollision(state);
+                if (collision) {
+                    blockHit = collision.block;
+                    blockHitFace = collision.blockFace;
+                    state.finalPoint = collision.impactPoint;
+                    break;
+                }
+            }
+
+            if (isInBounds && !isInBounds(state.currentPosition, state.nextPosition, state.currentVelocity, state.totalTicks)) {
+                break;
+            }
+
+            this.recordPoint(state);
+            this.advanceState(state);
+        }
+
+        return {
+            block: blockHit,
+            blockFace: blockHitFace,
+            finalPoint: state.finalPoint,
+            totalTicks: state.totalTicks
+        };
+    }
+
+    public calcToAABB(targetAABB: AABB, targetPos: Vec3, blockChecking = false, isInBounds?: ShotBoundsCheck): BasicShotInfo {
+        return this.simulateToTarget(targetAABB, targetPos, blockChecking, isInBounds);
+    }
+
+    public calcToBlock(target: Block, blockChecking = false, isInBounds?: ShotBoundsCheck): BasicShotInfo {
         const targetPos = target.position.floored();
-        return this.calcToAABB(getBlockPosAABB(targetPos), targetPos, blockChecking);
+        return this.calcToAABB(getBlockPosAABB(targetPos), targetPos, blockChecking, isInBounds);
+    }
+
+    public calcTrajectory(blockChecking = false, isInBounds?: TrajectoryBoundsCheck): BasicTrajectoryInfo {
+        return this.simulateTrajectoryOnly(blockChecking, isInBounds);
     }
 }
