@@ -14,6 +14,10 @@ const emptyVec = new Vec3(0, 0, 0);
 type BlockAndIterations = {
     block: Block | null;
     iterations: Iteration[];
+    intersect?: {
+        pos: Vec3;
+        face: BlockFace;
+    };
 };
 type Iteration = {
     x: number;
@@ -119,10 +123,12 @@ export class EnderShot {
                 blockInfo = this.interceptCalcs.check(currentPosition, nextPosition);
                 if (blockInfo.block && blockInfo.block.name !== "air") {
                     blockHit = blockInfo.block;
-                    blockHitFace = blockInfo.iterations[0].face; //todo, make cleaner.
-                    XZLandingDistance = normalizedTargetPos.xzDistanceTo(blockInfo.block.position) //todo: get block interception point.
-                    YLandingDistance = Math.abs(normalizedTargetPos.y - blockInfo.block.position.y)
-                    if (closestPoint.distanceTo(normalizedTargetPos) > blockInfo.block.position.distanceTo(normalizedTargetPos)) closestPoint = blockInfo.block.position.clone()
+                    const impactPoint = blockInfo.intersect?.pos ?? blockInfo.block.position;
+
+                    blockHitFace = blockInfo.intersect?.face ?? blockInfo.iterations[0]?.face; //todo, make cleaner.
+                    XZLandingDistance = normalizedTargetPos.xzDistanceTo(impactPoint)
+                    YLandingDistance = Math.abs(normalizedTargetPos.y - impactPoint.y)
+                    if (closestPoint.distanceTo(normalizedTargetPos) > impactPoint.distanceTo(normalizedTargetPos)) closestPoint = impactPoint.clone()
                     break;
                 }
             }
